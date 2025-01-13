@@ -504,6 +504,10 @@ resource "azurerm_windows_web_app_slot" "this" {
       update = timeouts.value.update
     }
   }
+
+  lifecycle {
+    ignore_changes = [ tags ]
+  }
 }
 
 resource "azurerm_linux_web_app_slot" "this" {
@@ -992,6 +996,10 @@ resource "azurerm_linux_web_app_slot" "this" {
       read   = timeouts.value.read
       update = timeouts.value.update
     }
+  }
+
+  lifecycle {
+    ignore_changes = [ tags ]
   }
 }
 

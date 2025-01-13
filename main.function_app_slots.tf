@@ -401,6 +401,10 @@ resource "azurerm_windows_function_app_slot" "this" {
       update = timeouts.value.update
     }
   }
+
+  lifecycle {
+    ignore_changes = [ tags ]
+  }
 }
 
 resource "azurerm_linux_function_app_slot" "this" {
@@ -804,6 +808,10 @@ resource "azurerm_linux_function_app_slot" "this" {
       read   = timeouts.value.read
       update = timeouts.value.update
     }
+  }
+
+  lifecycle {
+    ignore_changes = [ tags ]
   }
 }
 

@@ -410,6 +410,10 @@ resource "azurerm_windows_function_app" "this" {
       update = timeouts.value.update
     }
   }
+
+  lifecycle {
+    ignore_changes = [ tags ]
+  }
 }
 
 resource "azurerm_linux_function_app" "this" {
@@ -838,5 +842,9 @@ resource "azurerm_linux_function_app" "this" {
       read   = timeouts.value.read
       update = timeouts.value.update
     }
+  }
+
+  lifecycle {
+    ignore_changes = [ tags ]
   }
 }

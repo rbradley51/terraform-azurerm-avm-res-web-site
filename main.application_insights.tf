@@ -16,6 +16,10 @@ resource "azurerm_application_insights" "this" {
   sampling_percentage                   = var.application_insights.sampling_percentage
   tags                                  = var.application_insights.inherit_tags ? merge(var.tags, var.application_insights.tags) : var.application_insights.tags
   workspace_id                          = var.application_insights.workspace_resource_id
+
+  lifecycle {
+    ignore_changes = [ tags ]
+  }
 }
 
 resource "azurerm_application_insights" "slot" {
@@ -36,4 +40,8 @@ resource "azurerm_application_insights" "slot" {
   sampling_percentage                   = each.value.sampling_percentage
   tags                                  = each.value.inherit_tags ? merge(var.tags, each.value.tags) : each.value.tags
   workspace_id                          = each.value.workspace_resource_id
+
+  lifecycle {
+    ignore_changes = [ tags ]
+  }
 }

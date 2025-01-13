@@ -33,6 +33,10 @@ resource "azurerm_private_endpoint" "this" {
       private_dns_zone_ids = each.value.private_dns_zone_resource_ids
     }
   }
+
+  lifecycle {
+    ignore_changes = [ tags ]
+  }
 }
 
 resource "azurerm_private_endpoint" "this_unmanaged_dns_zone_groups" {
@@ -63,7 +67,7 @@ resource "azurerm_private_endpoint" "this_unmanaged_dns_zone_groups" {
   }
 
   lifecycle {
-    ignore_changes = [private_dns_zone_group]
+    ignore_changes = [private_dns_zone_group,tags]
   }
 }
 
@@ -109,6 +113,10 @@ resource "azurerm_private_endpoint" "slot" {
       private_dns_zone_ids = each.value.pe_value.private_dns_zone_resource_ids
     }
   }
+
+  lifecycle {
+    ignore_changes = [ tags ]
+  }
 }
 
 resource "azurerm_private_endpoint" "slot_this_unmanaged_dns_zone_groups" {
@@ -139,7 +147,7 @@ resource "azurerm_private_endpoint" "slot_this_unmanaged_dns_zone_groups" {
   }
 
   lifecycle {
-    ignore_changes = [private_dns_zone_group]
+    ignore_changes = [private_dns_zone_group,tags]
   }
 }
 

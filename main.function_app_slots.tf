@@ -403,7 +403,7 @@ resource "azurerm_windows_function_app_slot" "this" {
   }
 
   lifecycle {
-    ignore_changes = [ tags ]
+    ignore_changes = [tags,app_settings]
   }
 }
 
@@ -811,7 +811,7 @@ resource "azurerm_linux_function_app_slot" "this" {
   }
 
   lifecycle {
-    ignore_changes = [ tags ]
+    ignore_changes = [tags,app_settings]
   }
 }
 

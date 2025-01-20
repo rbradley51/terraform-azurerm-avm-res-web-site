@@ -520,7 +520,7 @@ resource "azurerm_windows_web_app" "this" {
   }
 
   lifecycle {
-    ignore_changes = [tags,app_settings]
+    ignore_changes = [tags,app_settings,virtual_application]
   }
 }
 
@@ -1025,7 +1025,7 @@ resource "azurerm_linux_web_app" "this" {
   }
 
   lifecycle {
-    ignore_changes = [tags,app_settings]
+    ignore_changes = [tags,app_settings,virtual_application]
   }
 }
 

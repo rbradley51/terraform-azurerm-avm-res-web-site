@@ -506,7 +506,7 @@ resource "azurerm_windows_web_app_slot" "this" {
   }
 
   lifecycle {
-    ignore_changes = [tags,app_settings,virtual_application]
+    ignore_changes = [tags,app_settings]
   }
 }
 
@@ -999,7 +999,7 @@ resource "azurerm_linux_web_app_slot" "this" {
   }
 
   lifecycle {
-    ignore_changes = [tags,app_settings,virtual_application]
+    ignore_changes = [tags,app_settings]
   }
 }
 

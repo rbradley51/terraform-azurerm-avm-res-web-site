@@ -28,10 +28,6 @@ resource "azurerm_dns_cname_record" "this" {
   target_resource_id  = each.value.cname_target_resource_id
 
   depends_on = [azurerm_windows_function_app.this, azurerm_windows_function_app_slot.this, azurerm_linux_function_app.this, azurerm_linux_function_app_slot.this]
-
-  lifecycle {
-    ignore_changes = [ tags ]
-  }
 }
 
 resource "azurerm_dns_txt_record" "this" {
@@ -52,10 +48,6 @@ resource "azurerm_dns_txt_record" "this" {
   }
 
   depends_on = [azurerm_windows_function_app.this, azurerm_windows_function_app_slot.this, azurerm_linux_function_app.this, azurerm_linux_function_app_slot.this]
-
-  lifecycle {
-    ignore_changes = [ tags ]
-  }
 }
 
 resource "azurerm_app_service_custom_hostname_binding" "this" {

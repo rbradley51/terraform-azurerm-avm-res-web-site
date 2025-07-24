@@ -9,7 +9,7 @@ If you have any policies denying / auditing App Services that use basic authenti
 # This allows us to randomize the region for the resource group.
 module "regions" {
   source  = "Azure/regions/azurerm"
-  version = ">= 0.8.0"
+  version = "0.8.0"
 }
 
 # This allows us to randomize the region for the resource group.
@@ -22,7 +22,7 @@ resource "random_integer" "region_index" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = ">= 0.3.0"
+  version = "0.4.2"
 }
 
 resource "azurerm_resource_group" "example" {
@@ -57,33 +57,24 @@ resource "azurerm_storage_account" "example" {
 module "avm_res_web_site" {
   source = "../../"
 
-  # source             = "Azure/avm-res-web-site/azurerm"
-  # version = "0.14.1"
-
-  enable_telemetry = var.enable_telemetry
-
-  name                = "${module.naming.function_app.name_unique}-basic-auth"
-  resource_group_name = azurerm_resource_group.example.name
-  location            = azurerm_resource_group.example.location
-
-  kind = "functionapp"
-
+  kind     = "functionapp"
+  location = azurerm_resource_group.example.location
+  name     = "${module.naming.function_app.name_unique}-basic-auth"
   # Uses an existing app service plan
   os_type                  = azurerm_service_plan.example.os_type
+  resource_group_name      = azurerm_resource_group.example.name
   service_plan_resource_id = azurerm_service_plan.example.id
-
-  # Uses an existing storage account
-  storage_account_name       = azurerm_storage_account.example.name
-  storage_account_access_key = azurerm_storage_account.example.primary_access_key
-
-  site_config = {
-    ftps_state = "FtpsOnly"
+  auth_settings = {
+    sso = {
+      enabled = true
+      active_directory = {
+        aad = {
+          client_id                  = "000000-000000-000000-000000"
+          client_secret_setting_name = "SSO_CLIENT_SECRET"
+        }
+      }
+    }
   }
-
-  # May require additional configuration for the authentication settings by use of App Registration
-
-  /*
-
   auth_settings_v2 = {
     setting1 = {
       auth_enabled     = true
@@ -102,9 +93,17 @@ module "avm_res_web_site" {
       }
     }
   }
-
-  */
-
+  enable_telemetry = var.enable_telemetry
+  site_config = {
+    ftps_state = "FtpsOnly"
+  }
+  storage_account_access_key = azurerm_storage_account.example.primary_access_key
+  # Uses an existing storage account
+  storage_account_name = azurerm_storage_account.example.name
+  tags = {
+    module  = "Azure/avm-res-web-site/azurerm"
+    version = "0.17.2"
+  }
 }
 ```
 
@@ -213,13 +212,13 @@ Version:
 
 Source: Azure/naming/azurerm
 
-Version: >= 0.3.0
+Version: 0.4.2
 
 ### <a name="module_regions"></a> [regions](#module\_regions)
 
 Source: Azure/regions/azurerm
 
-Version: >= 0.8.0
+Version: 0.8.0
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

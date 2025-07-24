@@ -8,7 +8,7 @@ This deploys the module with a Linux Web App with logs configured on both the ma
 # This allows us to randomize the region for the resource group.
 module "regions" {
   source  = "Azure/regions/azurerm"
-  version = ">= 0.8.0"
+  version = "0.8.0"
 }
 
 # This allows us to randomize the region for the resource group.
@@ -21,7 +21,7 @@ resource "random_integer" "region_index" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = ">= 0.3.0"
+  version = "0.4.2"
 }
 
 resource "azurerm_resource_group" "example" {
@@ -32,65 +32,66 @@ resource "azurerm_resource_group" "example" {
 resource "azurerm_service_plan" "example" {
   location            = azurerm_resource_group.example.location
   name                = module.naming.app_service_plan.name_unique
-  os_type             = "Windows"
+  os_type             = "Linux"
   resource_group_name = azurerm_resource_group.example.name
-  sku_name            = "P1v2"
+  sku_name            = "S1"
   tags = {
     app = "${module.naming.function_app.name_unique}-logs"
   }
 }
 
+resource "azurerm_application_insights" "example_staging" {
+  application_type    = "web"
+  location            = azurerm_resource_group.example.location
+  name                = "${module.naming.application_insights.name_unique}-staging"
+  resource_group_name = azurerm_resource_group.example.name
+  workspace_id        = azurerm_log_analytics_workspace.example_staging.id
+}
+
+resource "azurerm_log_analytics_workspace" "example_production" {
+  location            = azurerm_resource_group.example.location
+  name                = "${module.naming.log_analytics_workspace.name}-production"
+  resource_group_name = azurerm_resource_group.example.name
+  retention_in_days   = 30
+  sku                 = "PerGB2018"
+}
+
+resource "azurerm_log_analytics_workspace" "example_staging" {
+  location            = azurerm_resource_group.example.location
+  name                = "${module.naming.log_analytics_workspace.name}-staging"
+  resource_group_name = azurerm_resource_group.example.name
+  retention_in_days   = 30
+  sku                 = "PerGB2018"
+}
+
+resource "azurerm_log_analytics_workspace" "example_development" {
+  location            = azurerm_resource_group.example.location
+  name                = "${module.naming.log_analytics_workspace.name}-development"
+  resource_group_name = azurerm_resource_group.example.name
+  retention_in_days   = 30
+  sku                 = "PerGB2018"
+}
+
 # This is the module call
 module "avm_res_web_site" {
-  source = "../../"
+  source = "../.."
 
-  # source             = "Azure/avm-res-web-site/azurerm"
-  # version = "0.14.1"
-
-  enable_telemetry = var.enable_telemetry
-
-  name                = "${module.naming.function_app.name_unique}-logs"
-  resource_group_name = azurerm_resource_group.example.name
-  location            = azurerm_resource_group.example.location
-
-  kind = "webapp"
-
-  # Uses an existing app service plan
+  kind                     = "webapp"
+  location                 = azurerm_resource_group.example.location
+  name                     = "${module.naming.function_app.name_unique}-logs"
   os_type                  = azurerm_service_plan.example.os_type
+  resource_group_name      = azurerm_resource_group.example.name
   service_plan_resource_id = azurerm_service_plan.example.id
-
-  site_config = {
-    application_stack = {
-      dotnet = {
-        dotnet_version              = "8.0"
-        use_custom_runtime          = false
-        use_dotnet_isolated_runtime = true
-      }
-    }
+  application_insights = {
+    workspace_resource_id = azurerm_log_analytics_workspace.example_production.id
   }
-
-  logs = {
-    app_service_logs = {
-      http_logs = {
-        config1 = {
-          file_system = {
-            retention_in_days = 30
-            retention_in_mb   = 35
-          }
-        }
-      }
-      application_logs = {
-        config1 = {
-          file_system_level = "Warning"
-        }
-      }
-    }
-  }
-
   deployment_slots = {
     slot1 = {
-      name = "staging"
+      name                                           = "development-logs"
+      ftp_publish_basic_authentication_enabled       = false
+      webdeploy_publish_basic_authentication_enabled = false
       site_config = {
+        slot_application_insights_object_key = "development" # This is the key for the slot application insights mapping
         application_stack = {
           dotnet = {
             dotnet_version              = "8.0"
@@ -101,22 +102,100 @@ module "avm_res_web_site" {
       }
       logs = {
         app_service_logs = {
-          http_logs = {
-            config1 = {
-              file_system = {
-                retention_in_days = 30
-                retention_in_mb   = 35
-              }
+          application_logs = {
+            file_system_level = {
+              file_system_level = "Warning"
             }
           }
-          application_logs = {
-            config1 = {
-              file_system_level = "Warning"
+          http_logs = {
+            file_system_level = {
+              file_system = {
+                retention_in_days = 7
+                retention_in_mb   = 35
+              }
             }
           }
         }
       }
     }
+    slot2 = {
+      name                                           = "staging-logs"
+      ftp_publish_basic_authentication_enabled       = false
+      webdeploy_publish_basic_authentication_enabled = false
+      site_config = {
+        # Uses existing application insights
+        application_insights_connection_string = nonsensitive(azurerm_application_insights.example_staging.connection_string)
+        application_insights_key               = nonsensitive(azurerm_application_insights.example_staging.instrumentation_key)
+        application_stack = {
+          dotnet = {
+            dotnet_version              = "8.0"
+            use_custom_runtime          = false
+            use_dotnet_isolated_runtime = true
+          }
+        }
+      }
+
+      logs = {
+        app_service_logs = {
+          application_logs = {
+            file_system_level = {
+              file_system_level = "Off"
+            }
+          }
+          http_logs = {
+            file_system_level = {
+              file_system = {
+                retention_in_days = 7
+                retention_in_mb   = 35
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  enable_telemetry = var.enable_telemetry
+  logs = {
+    app_service_logs = {
+      # Added validation to ensure that logs object is configured.
+      # If file_system_level is set to "Off", then http_logs will have no effect
+      # logs set in `logs`
+      application_logs = {
+        file_system_level = {
+          file_system_level = "Off"
+        }
+      }
+      # Added validation to ensure that is http_logs is configured, application_logs must also be configured.
+      http_logs = {
+        file_system_level = {
+          file_system = {
+            retention_in_days = 7
+            retention_in_mb   = 35
+          }
+        }
+      }
+    }
+  }
+  site_config = {
+    application_stack = {
+      dotnet = {
+        dotnet_version              = "8.0"
+        use_custom_runtime          = false
+        use_dotnet_isolated_runtime = true
+      }
+    }
+  }
+  # Creates application insights for slot
+  slot_application_insights = {
+    development = {
+      name                  = "${module.naming.application_insights.name_unique}-development"
+      workspace_resource_id = azurerm_log_analytics_workspace.example_development.id
+      inherit_tags          = true
+    }
+  }
+  tags = {
+    module  = "Azure/avm-res-web-site/azurerm"
+    version = "0.17.2"
   }
 }
 ```
@@ -136,6 +215,10 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azurerm_application_insights.example_staging](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/application_insights) (resource)
+- [azurerm_log_analytics_workspace.example_development](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
+- [azurerm_log_analytics_workspace.example_production](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
+- [azurerm_log_analytics_workspace.example_staging](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_service_plan.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/service_plan) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
@@ -201,7 +284,7 @@ The following Modules are called:
 
 ### <a name="module_avm_res_web_site"></a> [avm\_res\_web\_site](#module\_avm\_res\_web\_site)
 
-Source: ../../
+Source: ../..
 
 Version:
 
@@ -209,13 +292,13 @@ Version:
 
 Source: Azure/naming/azurerm
 
-Version: >= 0.3.0
+Version: 0.4.2
 
 ### <a name="module_regions"></a> [regions](#module\_regions)
 
 Source: Azure/regions/azurerm
 
-Version: >= 0.8.0
+Version: 0.8.0
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

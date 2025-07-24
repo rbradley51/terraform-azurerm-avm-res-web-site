@@ -2,7 +2,7 @@
 # This allows us to randomize the region for the resource group.
 module "regions" {
   source  = "Azure/regions/azurerm"
-  version = ">= 0.8.0"
+  version = "0.8.0"
 }
 
 # This allows us to randomize the region for the resource group.
@@ -15,7 +15,7 @@ resource "random_integer" "region_index" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = ">= 0.3.0"
+  version = "0.4.2"
 }
 
 resource "azurerm_resource_group" "example" {
@@ -34,27 +34,27 @@ resource "azurerm_service_plan" "example" {
   }
 }
 
+resource "azurerm_log_analytics_workspace" "example" {
+  location            = azurerm_resource_group.example.location
+  name                = "${module.naming.log_analytics_workspace.name}-auto-heal"
+  resource_group_name = azurerm_resource_group.example.name
+  retention_in_days   = 30
+  sku                 = "PerGB2018"
+}
+
 module "avm_res_web_site" {
   source = "../../"
 
-  # source             = "Azure/avm-res-web-site/azurerm"
-  # version = "0.14.1"
-
-  enable_telemetry = var.enable_telemetry
-
-  name                = "${module.naming.function_app.name_unique}-auto-heal"
-  resource_group_name = azurerm_resource_group.example.name
-  location            = azurerm_resource_group.example.location
-
-  kind = "webapp"
-
+  kind                     = "webapp"
+  location                 = azurerm_resource_group.example.location
+  name                     = "${module.naming.function_app.name_unique}-auto-heal"
   os_type                  = azurerm_service_plan.example.os_type
+  resource_group_name      = azurerm_resource_group.example.name
   service_plan_resource_id = azurerm_service_plan.example.id
-
-  site_config = {
-
+  application_insights = {
+    workspace_resource_id = azurerm_log_analytics_workspace.example.id
   }
-  auto_heal_setting = { # auto_heal_setting should only be specified if auto_heal_enabled is set to `true`
+  auto_heal_setting = {
     setting_1 = {
       action = {
         action_type                    = "Recycle"
@@ -62,8 +62,10 @@ module "avm_res_web_site" {
       }
       trigger = {
         requests = {
-          count    = 100
-          interval = "00:00:30"
+          request = {
+            count    = 100
+            interval = "00:00:30"
+          }
         }
         status_code = {
           status_5000 = {
@@ -83,5 +85,13 @@ module "avm_res_web_site" {
         }
       }
     }
+  }
+  enable_telemetry = var.enable_telemetry
+  site_config = {
+
+  }
+  tags = {
+    module  = "Azure/avm-res-web-site/azurerm"
+    version = "0.17.2"
   }
 }

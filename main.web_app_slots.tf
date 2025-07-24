@@ -75,27 +75,31 @@ resource "azurerm_windows_web_app_slot" "this" {
         trigger {
           private_memory_kb = auto_heal_setting.value.trigger.private_memory_kb
 
-          requests {
-            count    = auto_heal_setting.value.trigger.requests.count
-            interval = auto_heal_setting.value.trigger.requests.interval
+          dynamic "requests" {
+            for_each = auto_heal_setting.value.trigger.requests
+
+            content {
+              count    = requests.value.trigger.requests.count
+              interval = requests.value.trigger.requests.interval
+            }
           }
           dynamic "slow_request" {
             for_each = auto_heal_setting.value.trigger.slow_request
 
             content {
-              count      = slow_requests.value.count
-              interval   = slow_requests.value.interval
-              time_taken = slow_requests.value.time_taken
+              count      = slow_request.value.count
+              interval   = slow_request.value.interval
+              time_taken = slow_request.value.time_taken
             }
           }
           dynamic "slow_request_with_path" {
             for_each = auto_heal_setting.value.trigger.slow_request_with_path
 
             content {
-              count      = slow_requests_with_path.value.count
-              interval   = slow_requests_with_path.value.interval
-              time_taken = slow_requests_with_path.value.time_taken
-              path       = slow_requests_with_path.value.path
+              count      = slow_request_with_path.value.count
+              interval   = slow_request_with_path.value.interval
+              time_taken = slow_request_with_path.value.time_taken
+              path       = slow_request_with_path.value.path
             }
           }
           dynamic "status_code" {
@@ -434,7 +438,7 @@ resource "azurerm_windows_web_app_slot" "this" {
     }
   }
   dynamic "logs" {
-    for_each = each.value.logs
+    for_each = contains(local.webapp_slots_with_logs_keys, each.key) ? { for k, v in each.value.logs : k => v if(lower(v.application_logs[local.webapp_slot_lk[each.key].file_system_level_key].file_system_level)) != "off" && v.application_logs[local.webapp_slot_lk[each.key].file_system_level_key].file_system_level != null } : {}
 
     content {
       detailed_error_messages = logs.value.detailed_error_messages
@@ -486,7 +490,8 @@ resource "azurerm_windows_web_app_slot" "this" {
     for_each = each.value.storage_shares_to_mount
 
     content {
-      access_key   = storage_account.value.access_key
+      # access_key   = storage_account.value.access_key
+      access_key   = var.slots_storage_shares_to_mount_sensitive_values[storage_account.key]
       account_name = storage_account.value.account_name
       name         = storage_account.value.name
       share_name   = storage_account.value.share_name
@@ -585,27 +590,31 @@ resource "azurerm_linux_web_app_slot" "this" {
           minimum_process_execution_time = auto_heal_setting.value.action.minimum_process_execution_time
         }
         trigger {
-          requests {
-            count    = auto_heal_setting.value.trigger.requests.count
-            interval = auto_heal_setting.value.trigger.requests.interval
+          dynamic "requests" {
+            for_each = auto_heal_setting.value.trigger.requests
+
+            content {
+              count    = requests.value.trigger.requests.count
+              interval = requests.value.trigger.requests.interval
+            }
           }
           dynamic "slow_request" {
             for_each = auto_heal_setting.value.trigger.slow_request
 
             content {
-              count      = slow_requests.value.count
-              interval   = slow_requests.value.interval
-              time_taken = slow_requests.value.time_taken
+              count      = slow_request.value.count
+              interval   = slow_request.value.interval
+              time_taken = slow_request.value.time_taken
             }
           }
           dynamic "slow_request_with_path" {
             for_each = auto_heal_setting.value.trigger.slow_request_with_path
 
             content {
-              count      = slow_requests_with_path.value.count
-              interval   = slow_requests_with_path.value.interval
-              time_taken = slow_requests_with_path.value.time_taken
-              path       = slow_requests_with_path.value.path
+              count      = slow_request_with_path.value.count
+              interval   = slow_request_with_path.value.interval
+              time_taken = slow_request_with_path.value.time_taken
+              path       = slow_request_with_path.value.path
             }
           }
           dynamic "status_code" {
@@ -655,7 +664,7 @@ resource "azurerm_linux_web_app_slot" "this" {
       }
     }
     dynamic "scm_ip_restriction" {
-      # one or more scm_ip_restriction blocks 
+      # one or more scm_ip_restriction blocks
       for_each = each.value.site_config.scm_ip_restriction
 
       content {
@@ -927,7 +936,7 @@ resource "azurerm_linux_web_app_slot" "this" {
     }
   }
   dynamic "logs" {
-    for_each = each.value.logs
+    for_each = contains(local.webapp_slots_with_logs_keys, each.key) ? { for k, v in each.value.logs : k => v if(lower(v.application_logs[local.webapp_slot_lk[each.key].file_system_level_key].file_system_level)) != "off" && v.application_logs[local.webapp_slot_lk[each.key].file_system_level_key].file_system_level != null } : {}
 
     content {
       detailed_error_messages = logs.value.detailed_error_messages
@@ -979,7 +988,8 @@ resource "azurerm_linux_web_app_slot" "this" {
     for_each = each.value.storage_shares_to_mount
 
     content {
-      access_key   = storage_account.value.access_key
+      # access_key   = storage_account.value.access_key
+      access_key   = var.slots_storage_shares_to_mount_sensitive_values[storage_account.key]
       account_name = storage_account.value.account_name
       name         = storage_account.value.name
       share_name   = storage_account.value.share_name

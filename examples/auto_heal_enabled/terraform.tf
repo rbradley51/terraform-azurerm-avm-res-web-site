@@ -1,5 +1,6 @@
 terraform {
   required_version = "~> 1.9"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -20,6 +21,6 @@ provider "azurerm" {
     }
   }
 
-  subscription_id = "<subscription-id>"
+  # subscription_id = "<subscription_id>"
 
 }

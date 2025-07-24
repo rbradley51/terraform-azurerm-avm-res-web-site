@@ -52,9 +52,9 @@ resource "azurerm_windows_web_app" "this" {
       content {
         current_stack = application_stack.value.current_stack
         # No longer supported in azurerm 4.x
-        # docker_container_name        = application_stack.value.docker_container_name 
+        # docker_container_name        = application_stack.value.docker_container_name
         # No longer supported in azurerm 4.x
-        # docker_container_tag         = application_stack.value.docker_container_tag  
+        # docker_container_tag         = application_stack.value.docker_container_tag
         docker_image_name            = application_stack.value.docker_image_name
         docker_registry_password     = application_stack.value.docker_registry_password
         docker_registry_url          = application_stack.value.docker_registry_url
@@ -80,27 +80,31 @@ resource "azurerm_windows_web_app" "this" {
         trigger {
           private_memory_kb = auto_heal_setting.value.trigger.private_memory_kb
 
-          requests {
-            count    = auto_heal_setting.value.trigger.requests.count
-            interval = auto_heal_setting.value.trigger.requests.interval
+          dynamic "requests" {
+            for_each = auto_heal_setting.value.trigger.requests
+
+            content {
+              count    = requests.value.count
+              interval = requests.value.interval
+            }
           }
           dynamic "slow_request" {
             for_each = auto_heal_setting.value.trigger.slow_request
 
             content {
-              count      = slow_requests.value.count
-              interval   = slow_requests.value.interval
-              time_taken = slow_requests.value.time_taken
+              count      = slow_request.value.count
+              interval   = slow_request.value.interval
+              time_taken = slow_request.value.time_taken
             }
           }
           dynamic "slow_request_with_path" {
             for_each = auto_heal_setting.value.trigger.slow_request_with_path
 
             content {
-              count      = slow_requests_with_path.value.count
-              interval   = slow_requests_with_path.value.interval
-              time_taken = slow_requests_with_path.value.time_taken
-              path       = slow_requests_with_path.value.path
+              count      = slow_request_with_path.value.count
+              interval   = slow_request_with_path.value.interval
+              time_taken = slow_request_with_path.value.time_taken
+              path       = slow_request_with_path.value.path
             }
           }
           dynamic "status_code" {
@@ -150,7 +154,7 @@ resource "azurerm_windows_web_app" "this" {
       }
     }
     dynamic "scm_ip_restriction" {
-      # one or more scm_ip_restriction blocks 
+      # one or more scm_ip_restriction blocks
       for_each = var.site_config.scm_ip_restriction
 
       content {
@@ -440,7 +444,10 @@ resource "azurerm_windows_web_app" "this" {
     }
   }
   dynamic "logs" {
-    for_each = var.logs
+    # If the `application_logs` key is not null... means that if `application_logs` is populated
+    # For each log object in var.logs (there should only ever be one in practice...)
+    # Check if instance of `logs` where the `application_logs` key is <key_value> and if file_system_level is not configured to "Off" or null
+    for_each = local.webapp_keys.alk != null ? [for x in var.logs : x if(x.application_logs[local.webapp_keys.alk].file_system_level != "Off" && x.application_logs[local.webapp_keys.alk].file_system_level != null)] : []
 
     content {
       detailed_error_messages = logs.value.detailed_error_messages
@@ -524,8 +531,17 @@ resource "azurerm_windows_web_app" "this" {
   }
 }
 
+# resource "azapi_update_resource" "windows_webapp" {
+#   count = var.kind == "webapp" && var.os_type == "Windows" && var.vnet_image_pull_enabled ? 1 : 0
 
-
+#   resource_id = azurerm_windows_web_app.this[0].id
+#   type        = "Microsoft.Web/sites@2024-04-01"
+#   body = {
+#     properties = {
+#       vnetImagePullEnabled = var.vnet_image_pull_enabled
+#     }
+#   }
+# }
 
 resource "azurerm_linux_web_app" "this" {
   count = var.kind == "webapp" && var.os_type == "Linux" ? 1 : 0
@@ -603,27 +619,31 @@ resource "azurerm_linux_web_app" "this" {
           minimum_process_execution_time = auto_heal_setting.value.action.minimum_process_execution_time
         }
         trigger {
-          requests {
-            count    = auto_heal_setting.value.trigger.requests.count
-            interval = auto_heal_setting.value.trigger.requests.interval
+          dynamic "requests" {
+            for_each = auto_heal_setting.value.trigger.requests
+
+            content {
+              count    = requests.value.count
+              interval = requests.value.interval
+            }
           }
           dynamic "slow_request" {
             for_each = auto_heal_setting.value.trigger.slow_request
 
             content {
-              count      = slow_requests.value.count
-              interval   = slow_requests.value.interval
-              time_taken = slow_requests.value.time_taken
+              count      = slow_request.value.count
+              interval   = slow_request.value.interval
+              time_taken = slow_request.value.time_taken
             }
           }
           dynamic "slow_request_with_path" {
             for_each = auto_heal_setting.value.trigger.slow_request_with_path
 
             content {
-              count      = slow_requests_with_path.value.count
-              interval   = slow_requests_with_path.value.interval
-              time_taken = slow_requests_with_path.value.time_taken
-              path       = slow_requests_with_path.value.path
+              count      = slow_request_with_path.value.count
+              interval   = slow_request_with_path.value.interval
+              time_taken = slow_request_with_path.value.time_taken
+              path       = slow_request_with_path.value.path
             }
           }
           dynamic "status_code" {
@@ -673,7 +693,7 @@ resource "azurerm_linux_web_app" "this" {
       }
     }
     dynamic "scm_ip_restriction" {
-      # one or more scm_ip_restriction blocks 
+      # one or more scm_ip_restriction blocks
       for_each = var.site_config.scm_ip_restriction
 
       content {
@@ -945,7 +965,10 @@ resource "azurerm_linux_web_app" "this" {
     }
   }
   dynamic "logs" {
-    for_each = var.logs
+    # If the `application_logs` key is not null... means that if `application_logs` is populated
+    # For each log object in var.logs (there should only ever be one in practice...)
+    # Check if instance of `logs` where the `application_logs` key is <key_value> and if file_system_level is not configured to "Off" or null
+    for_each = local.webapp_keys.alk != null ? [for x in var.logs : x if(x.application_logs[local.webapp_keys.alk].file_system_level != "Off" && x.application_logs[local.webapp_keys.alk].file_system_level != null)] : []
 
     content {
       detailed_error_messages = logs.value.detailed_error_messages
@@ -1029,3 +1052,14 @@ resource "azurerm_linux_web_app" "this" {
   }
 }
 
+# resource "azapi_update_resource" "linux_webapp" {
+#   count = var.kind == "webapp" && var.os_type == "Linux" && var.vnet_image_pull_enabled ? 1 : 0
+
+#   resource_id = azurerm_linux_web_app.this[0].id
+#   type        = "Microsoft.Web/sites@2024-04-01"
+#   body = {
+#     properties = {
+#       vnetImagePullEnabled = var.vnet_image_pull_enabled
+#     }
+#   }
+# }

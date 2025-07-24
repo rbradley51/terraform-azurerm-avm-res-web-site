@@ -2,7 +2,7 @@
 # This allows us to randomize the region for the resource group.
 module "regions" {
   source  = "Azure/regions/azurerm"
-  version = ">= 0.8.0"
+  version = "0.8.0"
 }
 
 # This allows us to randomize the region for the resource group.
@@ -15,7 +15,7 @@ resource "random_integer" "region_index" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = ">= 0.3.0"
+  version = "0.4.2"
 }
 
 resource "azurerm_resource_group" "example" {
@@ -57,27 +57,22 @@ resource "azurerm_role_assignment" "example" {
 module "avm_res_web_site" {
   source = "../../"
 
-  # source             = "Azure/avm-res-web-site/azurerm"
-  # version = "0.14.1"
-
-  enable_telemetry = var.enable_telemetry
-
-  name                = "${module.naming.function_app.name_unique}-mi"
-  resource_group_name = azurerm_resource_group.example.name
-  location            = azurerm_resource_group.example.location
-
-  kind = "functionapp"
-
+  kind     = "functionapp"
+  location = azurerm_resource_group.example.location
+  name     = "${module.naming.function_app.name_unique}-mi"
   # Uses an existing app service plan
   os_type                  = azurerm_service_plan.example.os_type
+  resource_group_name      = azurerm_resource_group.example.name
   service_plan_resource_id = azurerm_service_plan.example.id
-
-  # Uses an existing storage account
-  storage_account_name          = azurerm_storage_account.example.name
-  storage_uses_managed_identity = true
-
+  enable_telemetry         = var.enable_telemetry
   managed_identities = {
     system_assigned = true
   }
-
+  # Uses an existing storage account
+  storage_account_name          = azurerm_storage_account.example.name
+  storage_uses_managed_identity = true
+  tags = {
+    module  = "Azure/avm-res-web-site/azurerm"
+    version = "0.17.2"
+  }
 }

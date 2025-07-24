@@ -14,9 +14,9 @@ NOTES:
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.9)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0, >= 4.8.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0, >= 4.8.0, >= 4.21.1, < 5.0.0)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
 
@@ -34,10 +34,12 @@ The following resources are used by this module:
 - [azurerm_dns_cname_record.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dns_cname_record) (resource)
 - [azurerm_dns_txt_record.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dns_txt_record) (resource)
 - [azurerm_function_app_active_slot.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/function_app_active_slot) (resource)
+- [azurerm_function_app_flex_consumption.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/function_app_flex_consumption) (resource)
 - [azurerm_linux_function_app.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/linux_function_app) (resource)
 - [azurerm_linux_function_app_slot.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/linux_function_app_slot) (resource)
 - [azurerm_linux_web_app.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/linux_web_app) (resource)
 - [azurerm_linux_web_app_slot.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/linux_web_app_slot) (resource)
+- [azurerm_logic_app_standard.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/logic_app_standard) (resource)
 - [azurerm_management_lock.pe](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_management_lock.slot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
@@ -69,7 +71,7 @@ The following input variables are required:
 
 ### <a name="input_kind"></a> [kind](#input\_kind)
 
-Description: The type of App Service to deploy. Possible values are `functionapp` and `webapp`.
+Description: The type of App Service to deploy. Possible values are `functionapp`, `webapp` and `logicapp`.
 
 Type: `string`
 
@@ -125,14 +127,10 @@ Default: `true`
 
 ### <a name="input_app_service_active_slot"></a> [app\_service\_active\_slot](#input\_app\_service\_active\_slot)
 
-Description:
-  ```
-  Object that sets the active slot for the App Service.
+Description:   Object that sets the active slot for the App Service.
 
   `slot_key` - The key of the slot object to set as active.
   `overwrite_network_config` - Determines if the network configuration should be overwritten. Defaults to `true`.
-
-```
 
 Type:
 
@@ -300,7 +298,7 @@ Type:
 
 ```hcl
 map(object({
-    additional_login_parameters    = optional(list(string))
+    additional_login_parameters    = optional(map(string))
     allowed_external_redirect_urls = optional(list(string))
     default_provider               = optional(string)
     enabled                        = optional(bool, false)
@@ -314,36 +312,36 @@ map(object({
       allowed_audiences          = optional(list(string))
       client_secret              = optional(string)
       client_secret_setting_name = optional(string)
-    })))
+    })), {})
     facebook = optional(map(object({
       app_id                  = optional(string)
       app_secret              = optional(string)
       app_secret_setting_name = optional(string)
       oauth_scopes            = optional(list(string))
-    })))
+    })), {})
     github = optional(map(object({
       client_id                  = optional(string)
       client_secret              = optional(string)
       client_secret_setting_name = optional(string)
       oauth_scopes               = optional(list(string))
-    })))
+    })), {})
     google = optional(map(object({
       client_id                  = optional(string)
       client_secret              = optional(string)
       client_secret_setting_name = optional(string)
       oauth_scopes               = optional(list(string))
-    })))
+    })), {})
     microsoft = optional(map(object({
       client_id                  = optional(string)
       client_secret              = optional(string)
       client_secret_setting_name = optional(string)
       oauth_scopes               = optional(list(string))
-    })))
+    })), {})
     twitter = optional(map(object({
       consumer_key                 = optional(string)
       consumer_secret              = optional(string)
       consumer_secret_setting_name = optional(string)
-    })))
+    })), {})
   }))
 ```
 
@@ -535,7 +533,7 @@ map(object({
     login = optional(map(object({
       allowed_external_redirect_urls    = optional(list(string))
       cookie_expiration_convention      = optional(string, "FixedTime")
-      cookie_expiration_time            = optional(string, "00:00:00")
+      cookie_expiration_time            = optional(string, "08:00:00")
       logout_endpoint                   = optional(string)
       nonce_expiration_time             = optional(string, "00:05:00")
       preserve_url_fragments_for_logins = optional(bool, false)
@@ -585,7 +583,7 @@ Description:
     - `slow_request` - (Optional) The slow request trigger to activate the action.
       - `count` - (Required) The number of slow requests to trigger the action.
       - `interval` - (Required) The interval to trigger the action.
-      - `take_taken` - (Required) The time taken to trigger the action.
+      - `time_taken` - (Required) The time taken to trigger the action.
       - `path` - (Optional) The path to trigger the action.
       > NOTE: The `path` property in the `slow_request` block is deprecated and will be removed in 4.0 of provider. Please use `slow_request_with_path` to set a slow request trigger with `path` specified.
     - `status_code` - (Optional) The status code trigger to activate the action.
@@ -597,10 +595,7 @@ Description:
       - `win32_status_code` - (Optional) The Win32 status code to trigger the action.
 
   ```terraform
-  site_config = {
-    auto_heal_enabled = true # `auto_heal_enabled` deprecated in azurerm 4.x
-  }
-  auto_heal_setting = { # auto_heal_setting should only be specified if auto_heal_enabled is set to `true`
+  auto_heal_setting = {
     setting_1 = {
       action = {
         action_type                    = "Recycle"
@@ -646,26 +641,26 @@ map(object({
     }))
     trigger = optional(object({
       private_memory_kb = optional(number)
-      requests = optional(object({
+      requests = optional(map(object({
         count    = number
         interval = string
-      }))
+      })), {})
       slow_request = optional(map(object({
         count      = number
         interval   = string
-        take_taken = string
+        time_taken = string
         path       = optional(string)
       })), {})
       slow_request_with_path = optional(map(object({
         count      = number
         interval   = string
-        take_taken = string
+        time_taken = string
         path       = optional(string)
       })), {})
       status_code = optional(map(object({
         count             = number
         interval          = string
-        status_code_range = number
+        status_code_range = string
         path              = optional(string)
         sub_status        = optional(number)
         win32_status_code = optional(number)
@@ -732,6 +727,14 @@ Description: Should builtin logging be enabled for the Function App?
 Type: `bool`
 
 Default: `true`
+
+### <a name="input_bundle_version"></a> [bundle\_version](#input\_bundle\_version)
+
+Description: The version of the extension bundle to use. Defaults to `[1.*, 2.0.0)`. (Logic App)
+
+Type: `string`
+
+Default: `"[1.*, 2.0.0)"`
 
 ### <a name="input_client_affinity_enabled"></a> [client\_affinity\_enabled](#input\_client\_affinity\_enabled)
 
@@ -899,12 +902,15 @@ Default: `0`
 
 ### <a name="input_deployment_slots"></a> [deployment\_slots](#input\_deployment\_slots)
 
-Description:
-  ```
+Description:   > NOTE: If you plan to use the attribute reference of an external Application Insights instance for `application_insights_connection_string` and `application_insights_key`, you will likely need to remove the sensitivity level. For example, using the `nonsensitive` function.
 
-  > NOTE: If you plan to use the attribute reference of an external Application Insights instance for `application_insights_connection_string` and `application_insights_key`, you will likely need to remove the sensitivity level. For example, using the `nonsensitive` function.
-
-```
+  - `storage_shares_to_mount` - A map of storage shares to mount to the Function App deployment slot.
+    - `name` - The name of the share.
+    - `access_key` has been DEPRECATED and should not be used. Instead variable `slots_storage_shares_to_mount_sensitive_values` should be used.
+    - `account_name` - The name of the Storage Account.
+    - `share_name` - The name of the share in the Storage Account.
+    - `mount_path` - The path where the share will be mounted in the Function App.
+    - `type` - The type of mount, defaults to "AzureFiles".
 
 Type:
 
@@ -1083,26 +1089,26 @@ map(object({
       }))
       trigger = optional(object({
         private_memory_kb = optional(number)
-        requests = optional(object({
+        requests = optional(map(object({
           count    = number
           interval = string
-        }))
+        })), {})
         slow_request = optional(map(object({
           count      = number
           interval   = string
-          take_taken = string
+          time_taken = string
           path       = optional(string)
         })), {})
         slow_request_with_path = optional(map(object({
           count      = number
           interval   = string
-          take_taken = string
+          time_taken = string
           path       = optional(string)
         })), {})
         status_code = optional(map(object({
           count             = number
           interval          = string
-          status_code_range = number
+          status_code_range = string
           path              = optional(string)
           sub_status        = optional(number)
           win32_status_code = optional(number)
@@ -1200,7 +1206,7 @@ map(object({
     })), {})
 
     storage_shares_to_mount = optional(map(object({
-      access_key   = string
+      # access_key   = optional(string, null)
       account_name = string
       mount_path   = string
       name         = string
@@ -1408,6 +1414,27 @@ Type: `bool`
 
 Default: `true`
 
+### <a name="input_fc1_runtime_name"></a> [fc1\_runtime\_name](#input\_fc1\_runtime\_name)
+
+Description: The Runtime of the Linux Function App. Possible values are `node`, `dotnet-isolated`, `powershell`, `python`, `java`.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_fc1_runtime_version"></a> [fc1\_runtime\_version](#input\_fc1\_runtime\_version)
+
+Description:   The Runtime version of the Linux Function App. The supported values are different depending on the runtime chosen with `runtime_name`:
+  - `dotnet-isolated` supported values are: `8.0`, `9.0`
+  - `node` supported values are: `20`
+  - `python` supported values are: `3.10`, `3.11`
+  - `java` supported values are: `11`, `17`
+  - `powershell` supported values are: `7.4`
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_ftp_publish_basic_authentication_enabled"></a> [ftp\_publish\_basic\_authentication\_enabled](#input\_ftp\_publish\_basic\_authentication\_enabled)
 
 Description: Should basic authentication be enabled for FTP publish?
@@ -1415,6 +1442,14 @@ Description: Should basic authentication be enabled for FTP publish?
 Type: `bool`
 
 Default: `true`
+
+### <a name="input_function_app_uses_fc1"></a> [function\_app\_uses\_fc1](#input\_function\_app\_uses\_fc1)
+
+Description: Should this Function App run on a Flex Consumption Plan?
+
+Type: `bool`
+
+Default: `false`
 
 ### <a name="input_functions_extension_version"></a> [functions\_extension\_version](#input\_functions\_extension\_version)
 
@@ -1431,6 +1466,14 @@ Description: Should the Function App only be accessible over HTTPS?
 Type: `bool`
 
 Default: `false`
+
+### <a name="input_instance_memory_in_mb"></a> [instance\_memory\_in\_mb](#input\_instance\_memory\_in\_mb)
+
+Description: The amount of memory to allocate for the instance(s).
+
+Type: `number`
+
+Default: `2048`
 
 ### <a name="input_key_vault_reference_identity_id"></a> [key\_vault\_reference\_identity\_id](#input\_key\_vault\_reference\_identity\_id)
 
@@ -1455,6 +1498,14 @@ object({
 ```
 
 Default: `null`
+
+### <a name="input_logic_app_runtime_version"></a> [logic\_app\_runtime\_version](#input\_logic\_app\_runtime\_version)
+
+Description:  The runtime version associated with the Logic App. Defaults to ~4 (Logic App)
+
+Type: `string`
+
+Default: `"~4"`
 
 ### <a name="input_logs"></a> [logs](#input\_logs)
 
@@ -1504,6 +1555,14 @@ object({
 ```
 
 Default: `{}`
+
+### <a name="input_maximum_instance_count"></a> [maximum\_instance\_count](#input\_maximum\_instance\_count)
+
+Description: The number of workers this function app can scale out to.
+
+Type: `number`
+
+Default: `null`
 
 ### <a name="input_private_endpoints"></a> [private\_endpoints](#input\_private\_endpoints)
 
@@ -1619,10 +1678,19 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_scm_publish_basic_authentication_enabled"></a> [scm\_publish\_basic\_authentication\_enabled](#input\_scm\_publish\_basic\_authentication\_enabled)
+
+Description: Should basic authentication be enabled for SCM publish?
+
+Type: `bool`
+
+Default: `true`
+
 ### <a name="input_site_config"></a> [site\_config](#input\_site\_config)
 
 Description:   An object that configures the Function App's `site_config` block.
  - `always_on` - (Optional) If this Linux Web App is Always On enabled. Defaults to `true`.
+ - `auto_swap_slot_name` - (Optional) The name of the slot to swap with. (Logic App)
  - `api_definition_url` - (Optional) The URL of the API definition that describes this Linux Function App.
  - `api_management_api_id` - (Optional) The ID of the API Management API for this Linux Function App.
  - `app_command_line` - (Optional) The App command line to launch.
@@ -1632,12 +1700,14 @@ Description:   An object that configures the Function App's `site_config` block.
  - `container_registry_managed_identity_client_id` - (Optional) The Client ID of the Managed Service Identity to use for connections to the Azure Container Registry.
  - `container_registry_use_managed_identity` - (Optional) Should connections for Azure Container Registry use Managed Identity.
  - `default_documents` - (Optional) Specifies a list of Default Documents for the Linux Web App.
+ - `dotnet_framework_version` - (Optional) The version of the .NET Framework to use. Possible values are `v4.0` (including .NET Core 2.1 and 3.1), `v5.0`, `v6.0` and `v8.0`. Defaults to `v4.0`.
  - `elastic_instance_minimum` - (Optional) The number of minimum instances for this Linux Function App. Only affects apps on Elastic Premium plans.
  - `ftps_state` - (Optional) State of FTP / FTPS service for this function app. Possible values include: `AllAllowed`, `FtpsOnly` and `Disabled`. Defaults to `FtpsOnly`.
  - `health_check_eviction_time_in_min` - (Optional) The amount of time in minutes that a node can be unhealthy before being removed from the load balancer. Possible values are between `2` and `10`. Only valid in conjunction with `health_check_path`.
  - `health_check_path` - (Optional) The path to be checked for this function app health.
  - `http2_enabled` - (Optional) Specifies if the HTTP2 protocol should be enabled. Defaults to `false`.
  - `load_balancing_mode` - (Optional) The Site load balancing mode. Possible values include: `WeightedRoundRobin`, `LeastRequests`, `LeastResponseTime`, `WeightedTotalTraffic`, `RequestHash`, `PerSiteRoundRobin`. Defaults to `LeastRequests` if omitted.
+ - `linux_fx_version` - (Optional) Linux App Framework and version for the App Service, e.g. `DOCKER|(golang:latest)`. Setting this value will also set the kind of application deployed to `functionapp,linux,container,workflowapp`. You must set `os_type` to `Linux` when this property is set.
  - `managed_pipeline_mode` - (Optional) Managed pipeline mode. Possible values include: `Integrated`, `Classic`. Defaults to `Integrated`.
  - `minimum_tls_version` - (Optional) The configures the minimum version of TLS required for SSL requests. Possible values include: `1.0`, `1.1`, `1.2`, and `1.3`. Defaults to `1.3`.
  - `pre_warmed_instance_count` - (Optional) The number of pre-warmed instances for this function app. Only affects apps on an Elastic Premium plan.
@@ -1646,6 +1716,7 @@ Description:   An object that configures the Function App's `site_config` block.
  - `runtime_scale_monitoring_enabled` - (Optional) Should Scale Monitoring of the Functions Runtime be enabled?
  - `scm_minimum_tls_version` - (Optional) Configures the minimum version of TLS required for SSL requests to the SCM site Possible values include: `1.0`, `1.1`, and `1.2`. Defaults to `1.2`.
  - `scm_use_main_ip_restriction` - (Optional) Should the Linux Function App `ip_restriction` configuration be used for the SCM also.
+ - `scm_type` - (Optional) The type of SCM to use. Possible values include: `None`, `LocalGit`, `GitHub`, `BitbucketGit`, `BitBucketHg`, `CodePlexHg`, `CodePlexGit`, `Dropbox`, `Tfs`, `VSO`, `VSTSRM`, `ExternalGit`, `ExternalHg` and `OneDrive`. Defaults to `None`.
  - `use_32_bit_worker` - (Optional) Should the Linux Web App use a 32-bit worker process. Defaults to `false`.
  - `vnet_route_all_enabled` - (Optional) Should all outbound traffic to have NAT Gateways, Network Security Groups and User Defined Routes applied? Defaults to `false`.
  - `websockets_enabled` - (Optional) Should Web Sockets be enabled. Defaults to `false`.
@@ -1721,11 +1792,14 @@ Type:
 
 ```hcl
 object({
-    always_on                                     = optional(bool, true)
-    api_definition_url                            = optional(string)
-    api_management_api_id                         = optional(string)
-    app_command_line                              = optional(string)
-    auto_heal_enabled                             = optional(bool)
+    always_on             = optional(bool, true)
+    linux_fx_version      = optional(string)
+    api_definition_url    = optional(string)
+    api_management_api_id = optional(string)
+    app_command_line      = optional(string)
+    # auto_heal_enabled                             = optional(bool)
+    dotnet_framework_version                      = optional(string, "v4.0")
+    auto_swap_slot_name                           = optional(string)
     app_scale_limit                               = optional(number)
     application_insights_connection_string        = optional(string)
     application_insights_key                      = optional(string)
@@ -1746,6 +1820,7 @@ object({
     remote_debugging_enabled                      = optional(bool, false)
     remote_debugging_version                      = optional(string)
     runtime_scale_monitoring_enabled              = optional(bool)
+    scm_type                                      = optional(string, "None")
     scm_ip_restriction_default_action             = optional(string, "Allow")
     scm_minimum_tls_version                       = optional(string, "1.2")
     scm_use_main_ip_restriction                   = optional(bool, false)
@@ -1872,6 +1947,16 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_slots_storage_shares_to_mount_sensitive_values"></a> [slots\_storage\_shares\_to\_mount\_sensitive\_values](#input\_slots\_storage\_shares\_to\_mount\_sensitive\_values)
+
+Description:   A map of sensitive values (Storage Access Key) for the Storage Account SMB file shares to mount to the Function App.  
+  The key is the supplied input to `var.storage_shares_to_mount`.  
+  The value is the secret value (storage access key).
+
+Type: `map(string)`
+
+Default: `{}`
+
 ### <a name="input_sticky_settings"></a> [sticky\_settings](#input\_sticky\_settings)
 
 Description:   A map of sticky settings to assign to the Function App.
@@ -1900,7 +1985,8 @@ Default: `{}`
 
 ### <a name="input_storage_account_access_key"></a> [storage\_account\_access\_key](#input\_storage\_account\_access\_key)
 
-Description: The access key of the Storage Account to deploy the Function App in. Conflicts with `storage_uses_managed_identity`.
+Description:   The access key of the Storage Account to deploy the Function App in. Conflicts with `storage_uses_managed_identity` (non-flex consumption function app configurations).  
+  This will resolve to `storage_acccess_key` for flex consumption function apps. Must be specified if `storage_authentication_type` is set to `storageaccountconnecionstring` Conflicts with `storage_user_assigned_identity_id`.
 
 Type: `string`
 
@@ -1909,6 +1995,39 @@ Default: `null`
 ### <a name="input_storage_account_name"></a> [storage\_account\_name](#input\_storage\_account\_name)
 
 Description: The name of the Storage Account to deploy the Function App in.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_storage_account_share_name"></a> [storage\_account\_share\_name](#input\_storage\_account\_share\_name)
+
+Description: (Logic App)
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_storage_authentication_type"></a> [storage\_authentication\_type](#input\_storage\_authentication\_type)
+
+Description:   The authentication type which will be used to access the backend storage account for the Function App.  
+  Possible values are `StorageAccountConnectionString`, `SystemAssignedIdentity`, and `UserAssignedIdentity`."
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_storage_container_endpoint"></a> [storage\_container\_endpoint](#input\_storage\_container\_endpoint)
+
+Description: The backend storage container endpoint which will be used by this Function App.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_storage_container_type"></a> [storage\_container\_type](#input\_storage\_container\_type)
+
+Description: The storage container type used for the Function App. The current supported type is `blobContainer`.
 
 Type: `string`
 
@@ -1936,7 +2055,7 @@ Description:   A map of objects that represent Storage Account FILE SHARES to mo
   - `mount_path` - (Optional) The path to mount the Storage Account to.
 
   ```terraform
-  storage_accounts = {
+  storage_shares_to_mount = {
     storacc1 = {
       access_key   = "00000000-0000-0000-0000-000000000000"
       account_name = "example"
@@ -1962,6 +2081,14 @@ map(object({
 ```
 
 Default: `{}`
+
+### <a name="input_storage_user_assigned_identity_id"></a> [storage\_user\_assigned\_identity\_id](#input\_storage\_user\_assigned\_identity\_id)
+
+Description: The ID of the User Assigned Managed Identity to use for the Storage Account. Conflicts with `storage_account_access_key`.
+
+Type: `string`
+
+Default: `null`
 
 ### <a name="input_storage_uses_managed_identity"></a> [storage\_uses\_managed\_identity](#input\_storage\_uses\_managed\_identity)
 
@@ -1999,6 +2126,22 @@ object({
 
 Default: `null`
 
+### <a name="input_use_extension_bundle"></a> [use\_extension\_bundle](#input\_use\_extension\_bundle)
+
+Description: Should the extension bundle be used? (Logic App)
+
+Type: `bool`
+
+Default: `true`
+
+### <a name="input_virtual_network_backup_restore_enabled"></a> [virtual\_network\_backup\_restore\_enabled](#input\_virtual\_network\_backup\_restore\_enabled)
+
+Description: Should backup and restore operations over the linked virtual network are enabled? Defaults to `false`.
+
+Type: `bool`
+
+Default: `false`
+
 ### <a name="input_virtual_network_subnet_id"></a> [virtual\_network\_subnet\_id](#input\_virtual\_network\_subnet\_id)
 
 Description: The ID of the subnet to deploy the Function App in.
@@ -2006,6 +2149,14 @@ Description: The ID of the subnet to deploy the Function App in.
 Type: `string`
 
 Default: `null`
+
+### <a name="input_vnet_image_pull_enabled"></a> [vnet\_image\_pull\_enabled](#input\_vnet\_image\_pull\_enabled)
+
+Description: Should the traffic for the image pull be routed over virtual network enabled? Defaults to `false`.
+
+Type: `bool`
+
+Default: `false`
 
 ### <a name="input_webdeploy_publish_basic_authentication_enabled"></a> [webdeploy\_publish\_basic\_authentication\_enabled](#input\_webdeploy\_publish\_basic\_authentication\_enabled)
 
@@ -2093,7 +2244,7 @@ Description: value
 
 ### <a name="output_system_assigned_mi_principal_id_slots"></a> [system\_assigned\_mi\_principal\_id\_slots](#output\_system\_assigned\_mi\_principal\_id\_slots)
 
-Description: Map or value of system-assigned managed identity principal IDs for resources slots
+Description: Map or value of system-assigned managed identity principal IDs for resources slots (only for webapp & functionapp)
 
 ### <a name="output_thumbprints"></a> [thumbprints](#output\_thumbprints)
 

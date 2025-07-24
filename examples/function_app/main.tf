@@ -2,7 +2,7 @@
 # This allows us to randomize the region for the resource group.
 module "regions" {
   source  = "Azure/regions/azurerm"
-  version = ">= 0.8.0"
+  version = "0.8.0"
 }
 
 # This allows us to randomize the region for the resource group.
@@ -15,7 +15,7 @@ resource "random_integer" "region_index" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = ">= 0.3.0"
+  version = "0.4.2"
 }
 
 resource "azurerm_resource_group" "example" {
@@ -47,32 +47,33 @@ resource "azurerm_storage_account" "example" {
   }
 }
 
+resource "azurerm_log_analytics_workspace" "example_production" {
+  location            = azurerm_resource_group.example.location
+  name                = "${module.naming.log_analytics_workspace.name}-production"
+  resource_group_name = azurerm_resource_group.example.name
+  retention_in_days   = 30
+  sku                 = "PerGB2018"
+}
+
 module "avm_res_web_site" {
   source = "../../"
 
-  # source             = "Azure/avm-res-web-site/azurerm"
-  # version = "0.14.1"
-
-  enable_telemetry = var.enable_telemetry
-
-  name                = "${module.naming.function_app.name_unique}-functionapp"
-  resource_group_name = azurerm_resource_group.example.name
-  location            = azurerm_resource_group.example.location
-
-  kind = "functionapp"
-
+  kind     = "functionapp"
+  location = azurerm_resource_group.example.location
+  name     = "${module.naming.function_app.name_unique}-functionapp"
   # Uses an existing app service plan
   os_type                  = azurerm_service_plan.example.os_type
+  resource_group_name      = azurerm_resource_group.example.name
   service_plan_resource_id = azurerm_service_plan.example.id
-
-  # Uses an existing storage account
-  storage_account_name       = azurerm_storage_account.example.name
+  application_insights = {
+    workspace_resource_id = azurerm_log_analytics_workspace.example_production.id
+  }
+  enable_telemetry           = var.enable_telemetry
   storage_account_access_key = azurerm_storage_account.example.primary_access_key
-  # storage_uses_managed_identity = true
-
+  # Uses an existing storage account
+  storage_account_name = azurerm_storage_account.example.name
   tags = {
     module  = "Azure/avm-res-web-site/azurerm"
-    version = "0.14.1"
+    version = "0.17.2"
   }
-
 }

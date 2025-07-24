@@ -8,7 +8,7 @@ This deploys the module as a Windows Function App using some of the interfaces.
 # This allows us to randomize the region for the resource group.
 module "regions" {
   source  = "Azure/regions/azurerm"
-  version = ">= 0.8.0"
+  version = "0.8.0"
 }
 
 # This allows us to randomize the region for the resource group.
@@ -22,7 +22,7 @@ resource "random_integer" "region_index" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = ">= 0.3.0"
+  version = "0.4.2"
 }
 
 # data "azurerm_client_config" "this" {}
@@ -69,10 +69,10 @@ resource "azurerm_log_analytics_workspace" "example" {
 }
 
 resource "azurerm_virtual_network" "example" {
-  address_space       = ["192.168.0.0/24"]
   location            = azurerm_resource_group.example.location
   name                = module.naming.virtual_network.name_unique
   resource_group_name = azurerm_resource_group.example.name
+  address_space       = ["192.168.0.0/24"]
 }
 
 resource "azurerm_subnet" "example" {
@@ -103,30 +103,13 @@ resource "azurerm_user_assigned_identity" "user" {
 module "avm_res_web_site" {
   source = "../../"
 
-  # source             = "Azure/avm-res-web-site/azurerm"
-  # version = "0.14.1"
-
-  enable_telemetry = var.enable_telemetry
-
-  name                = "${module.naming.function_app.name_unique}-default"
-  resource_group_name = azurerm_resource_group.example.name
-  location            = azurerm_resource_group.example.location
-
-  kind = "functionapp"
-
+  kind     = "functionapp"
+  location = azurerm_resource_group.example.location
+  name     = "${module.naming.function_app.name_unique}-interfaces"
   # Uses an existing app service plan
   os_type                  = azurerm_service_plan.example.os_type
+  resource_group_name      = azurerm_resource_group.example.name
   service_plan_resource_id = azurerm_service_plan.example.id
-
-  # Uses an existing storage account
-  storage_account_name       = azurerm_storage_account.example.name
-  storage_account_access_key = azurerm_storage_account.example.primary_access_key
-  # storage_uses_managed_identity = true
-
-  public_network_access_enabled = false
-
-  enable_application_insights = true
-
   application_insights = {
     name                  = module.naming.application_insights.name_unique
     resource_group_name   = azurerm_resource_group.example.name
@@ -137,25 +120,21 @@ module "avm_res_web_site" {
       environment = "dev-tf"
     }
   }
-
+  diagnostic_settings = {
+    diagnostic_settings_1 = {
+      name                  = "dia_settings_1"
+      workspace_resource_id = azurerm_log_analytics_workspace.example.id
+    }
+  }
+  enable_application_insights = true
+  enable_telemetry            = var.enable_telemetry
   managed_identities = {
-    # Identities can only be used with the Standard SKU    
+    # Identities can only be used with the Standard SKU
     system_assigned = true
     user_assigned_resource_ids = [
       azurerm_user_assigned_identity.user.id
     ]
   }
-
-  # lock = {
-  #   /*
-  #   kind = "ReadOnly"
-  #   */
-
-  #   /*
-  #   kind = "CanNotDelete"
-  #   */
-  # }
-
   private_endpoints = {
     # Use of private endpoints requires Standard SKU
     primary = {
@@ -181,31 +160,20 @@ module "avm_res_web_site" {
       # }
 
       tags = {
-        webapp = "${module.naming.static_web_app.name_unique}-interfaces"
+        webapp = "${module.naming.function_app.name_unique}-interfaces"
       }
 
     }
 
   }
-
-  # role_assignments = {
-  #   role_assignment_1 = {
-  #     role_definition_id_or_name = data.azurerm_role_definition.example.id
-  #     principal_id               = data.azurerm_client_config.this.object_id
-  #   }
-  # }
-
-  diagnostic_settings = {
-    diagnostic_settings_1 = {
-      name                  = "dia_settings_1"
-      workspace_resource_id = azurerm_log_analytics_workspace.example.id
-    }
-  }
-
+  public_network_access_enabled = false
+  storage_account_access_key    = azurerm_storage_account.example.primary_access_key
+  # Uses an existing storage account
+  storage_account_name = azurerm_storage_account.example.name
   tags = {
-    environment = "dev-tf"
+    module  = "Azure/avm-res-web-site/azurerm"
+    version = "0.17.2"
   }
-
 }
 
 
@@ -293,7 +261,7 @@ resource "azurerm_windows_virtual_machine" "example" {
 # Create the virtual machine
 # module "avm_res_compute_virtualmachine" {
 #   source  = "Azure/avm-res-compute-virtualmachine/azurerm"
-#   version = "0.15.1"
+#   version = "0.16.4"
 
 #   enable_telemetry = var.enable_telemetry
 
@@ -339,7 +307,7 @@ resource "azurerm_windows_virtual_machine" "example" {
 
 # module "avm_res_compute_virtualmachine_sku_selector" {
 #   source  = "Azure/avm-res-compute-virtualmachine/azurerm//modules/sku_selector"
-#   version = "0.15.1"
+#   version = "0.16.4"
 
 #   deployment_region = azurerm_resource_group.example.location
 # }
@@ -465,13 +433,13 @@ Version:
 
 Source: Azure/naming/azurerm
 
-Version: >= 0.3.0
+Version: 0.4.2
 
 ### <a name="module_regions"></a> [regions](#module\_regions)
 
 Source: Azure/regions/azurerm
 
-Version: >= 0.8.0
+Version: 0.8.0
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection
